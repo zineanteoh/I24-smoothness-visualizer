@@ -4,7 +4,9 @@ Created on Fri Jan 28 11:15:36 2022
 
 @author: teohz
 
-@brief: graphs a trajectory file 
+@brief: this program plots and saves trajectory graph up to 
+        3rd derivative (jerk). 
+        derivatives are computed using discrete-time derivatives
 """
 
 import numpy as np
@@ -64,14 +66,16 @@ def plot_figure(car_id,
     plt.savefig(os.path.join(main_folder, output_file_name))
 
 main_folder = r"C:\Users\teohz\Desktop\smoothness-visualizer"
-gt_path = main_folder + "\TM_10000_GT.csv"
+trajectory_path = main_folder + "\TM_10000_GT.csv"
 
 if __name__ == "__main__":
     # read file
-    df_orig = pd.read_csv(gt_path)
+    df = pd.read_csv(trajectory_path)
     
     for car_id in range(1, 7):
-        df = df_orig[df_orig['ID'] == car_id].reset_index(drop=True)
+        # get specific car_id (comment out if no id column in trajectory file)
+        df = df[df['ID'] == car_id]
+        df = df.reset_index(drop=True)
         x = df['x']
         time_x = df['Timestamp']
         
