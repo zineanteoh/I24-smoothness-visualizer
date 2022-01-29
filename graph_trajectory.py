@@ -31,9 +31,24 @@ def get_derivative(function, time):
         t_prime = np.append(t_prime, t_temp)
     return f_prime, t_prime
 
-def plot_figure(x_list, y_list, color, label, xlabel, ylabel):
+def plot_figure(computed_plot_info, actual_plot_info, xlabel, ylabel, alpha = 1.0):
     plt.figure()
-    plt.plot(x_list, y_list, color + "x", label=label, markersize=0.5)
+    # graph actual (if provided)
+    if actual_plot_info != {}:
+        plt.plot(actual_plot_info["x_list"], 
+                 actual_plot_info["y_list"], 
+                 actual_plot_info["format"],
+                 alpha = alpha,
+                 label = actual_plot_info["label"],
+                 markersize = 0.5)
+    # graph computed
+    plt.plot(computed_plot_info["x_list"],
+             computed_plot_info["y_list"],
+             computed_plot_info["format"],
+             alpha = alpha,
+             label = computed_plot_info["label"],
+             markersize = 0.5)
+    
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.legend()
@@ -45,23 +60,29 @@ if __name__ == "__main__":
     df = pd.read_csv(gt_path)
     
     # get one specific car
-    df = df[df['ID'] == 5]
-    x = df['x'].reset_index(drop=True)
-    time_x = df['Timestamp'].reset_index(drop=True)
+    df = df[df['ID'] == 5].reset_index(drop=True)
+    x = df['x']
+    time_x = df['Timestamp']
     
     # position
-    plot_figure(time_x, x, "b", "Position", "time (seconds)", "position, x")
+    computed_x = {"x_list": time_x, "y_list": x, "format": "tab:olive", "label": "Computed Position"}
+    plot_figure(computed_x, {}, "time (seconds)", "position, x")
     
     # velocity
     v, time_v = get_derivative(x, time_x)
-    plot_figure(time_v, v, "g", "Velocity", "time (seconds)", "velocity, dx/dt")
+    computed_v = {"x_list": time_v, "y_list": v, "format": "tab:green", "label": "Computed Velocity"}
+    actual_v = {"x_list": time_x, "y_list": -df['speed'], "format": "tab:olive", "label": "Actual Velocity"}
+    plot_figure(computed_v, actual_v, "time (seconds)", "velocity, dx/dt", 0.9)
     
     # acceleration
     a, time_a = get_derivative(v, time_v)
-    plot_figure(time_a, a, "m", "Acceleration", "time (seconds)", "acceleration, dv/dt")
+    computed_a = {"x_list": time_a, "y_list": a, "format": "tab:blue", "label": "Computed Accleration"}
+    actual_a = {"x_list": time_x, "y_list": -df['acceleration'], "format": "tab:olive", "label": "Actual Acceleration"}
+    plot_figure(computed_a, actual_a, "time (seconds)", "acceleration, dv/dt", 0.9)
     
     # jerk
     j, time_j = get_derivative(a, time_a)
-    plot_figure(time_j, j, "y", "Jerk", "time (seconds)", "jerk, da/dt")
+    computed_j =  {"x_list": time_j, "y_list": j, "format": "tab:red", "label": "Computed Jerk"}
+    plot_figure(computed_j, {}, "time (seconds)", "jerk, da/dt")
 
     
