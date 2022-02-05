@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy.interpolate import UnivariateSpline
 
 def get_derivative(function, time):
     '''
@@ -34,32 +36,22 @@ def get_derivative(function, time):
         t_prime = np.append(t_prime, t_temp)
     return f_prime, t_prime
 
-def plot_figure(car_id, 
-                computed_plot_info, 
-                actual_plot_info, 
+def plot_figure(title, 
+                plot_infos,
                 xlabel, 
                 ylabel, 
                 alpha,
                 output_file_name = "figure.png"):
     plt.figure()
-    # graph actual (if provided)
-    if actual_plot_info != {}:
-        plt.plot(actual_plot_info["x_list"], 
-                 actual_plot_info["y_list"], 
-                 color = actual_plot_info["color"],
+    for plot_info in plot_infos:
+        plt.plot(plot_info["x_list"], 
+                 plot_info["y_list"], 
+                 color = plot_info["color"],
                  alpha = alpha,
-                 label = actual_plot_info["label"],
+                 label = plot_info["label"],
                  markersize = 0.5)
-    # graph computed
-    if computed_plot_info != {}:
-        plt.plot(computed_plot_info["x_list"],
-                 computed_plot_info["y_list"],
-                 color = computed_plot_info["color"],
-                 linestyle = "-",
-                 alpha = alpha,
-                 label = computed_plot_info["label"],
-                 markersize = 0.5)
-    plt.title("Car_id: " + str(car_id))
+    plt.ticklabel_format(useOffset=False)
+    plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.legend()
@@ -70,38 +62,57 @@ trajectory_path = main_folder + "\TM_10000_GT.csv"
 
 if __name__ == "__main__":
     # read file
-    df = pd.read_csv(trajectory_path)
+    df_orig = pd.read_csv(trajectory_path)
     
-    for car_id in range(1, 7):
+    for car_id in range(1, 10):
         # get specific car_id (comment out if no id column in trajectory file)
-        df = df[df['ID'] == car_id]
+        df = df_orig[df_orig['ID'] == car_id]
         df = df.reset_index(drop=True)
-        x = df['x']
-        time_x = df['Timestamp']
         
         # position
+        x = df['x']
+        time_x = df['Timestamp']
+        # spline fit on position
+        spl = InterpolatedUnivariateSpline(time_x, x)
+        spl_time_x = np.linspace(min(time_x), max(time_x), 100)
+        spl_x = spl(spl_time_x)
+        # plot position
+        plot_title = "Position: Car_id: " + str(car_id)
+        plot_infos = [{"x_list": time_x, "y_list": x, "color": "tab:olive", "label": "Position"},
+                      {"x_list": spl_time_x, "y_list": spl_x, "color": "tab:green", "label": "Spline Fit Position"}]
         output_file_name = "car" + str(car_id) + "_1_position.png"
-        computed_x = {"x_list": time_x, "y_list": x, "color": "tab:olive", "label": "Actual Position"}
-        plot_figure(car_id, computed_x, {}, "time (seconds)", "position, x", 1, output_file_name)
+        plot_figure(plot_title, plot_infos, "time (seconds)", "position, x", 1, output_file_name)
         
         # velocity
-        output_file_name = "car" + str(car_id) + "_2_velocity.png"
         v, time_v = get_derivative(x, time_x)
-        computed_v = {"x_list": time_v, "y_list": -v, "color": "tab:green", "label": "Computed Velocity"}
-        actual_v = {"x_list": time_x, "y_list": df['speed'], "color": "tab:olive", "label": "Actual Velocity"}
-        plot_figure(car_id, computed_v, actual_v, "time (seconds)", "velocity, dx/dt", 0.9, output_file_name)
+        v = -v
+        spl_v, spl_time_v = get_derivative(spl_x, spl_time_x)
+        spl_v = -spl_v
+        # plot velocity
+        plot_title = "Velocity: Car_id: " + str(car_id)
+        plot_infos = [{"x_list": time_v, "y_list": v, "color": "tab:olive", "label": "Velocity"}, 
+                      {"x_list": spl_time_v, "y_list": spl_v, "color": "tab:green", "label": "Spline Fit Velocity"}]
+        output_file_name = "car" + str(car_id) + "_2_velocity.png"
+        plot_figure(plot_title, plot_infos, "time (seconds)", "velocity, dx/dt", 0.9, output_file_name)
         
         # acceleration
-        output_file_name = "car" + str(car_id) + "_3_acceleration.png"
         a, time_a = get_derivative(v, time_v)
-        computed_a = {"x_list": time_a, "y_list": -a, "color": "tab:blue", "label": "Computed Accleration"}
-        actual_a = {"x_list": time_x, "y_list": df['acceleration'], "color": "tab:olive", "label": "Actual Acceleration"}
-        plot_figure(car_id, computed_a, actual_a, "time (seconds)", "acceleration, dv/dt", 0.9, output_file_name)
+        spl_a, spl_time_a = get_derivative(spl_v, spl_time_v)
+        # plot acceleration
+        plot_title = "Acceleration: Car_id: " + str(car_id)
+        plot_infos = [{"x_list": time_a, "y_list": a, "color": "tab:olive", "label": "Accleration"},
+                      {"x_list": spl_time_a, "y_list": spl_a, "color": "tab:green", "label": "Spline Fit Acceleration"}]
+        output_file_name = "car" + str(car_id) + "_3_acceleration.png"
+        plot_figure(plot_title, plot_infos, "time (seconds)", "acceleration, dv/dt", 0.9, output_file_name)
         
         # jerk
-        output_file_name = "car" + str(car_id) + "_4_jerk.png"
         j, time_j = get_derivative(a, time_a)
-        computed_j =  {"x_list": time_j, "y_list": j, "color": "tab:red", "label": "Computed Jerk"}
-        plot_figure(car_id, computed_j, {}, "time (seconds)", "jerk, da/dt", 1, output_file_name)
-
+        spl_j, spl_time_j = get_derivative(spl_a, spl_time_a)
+        # plot jerk
+        plot_title = "Jerk: Car_id: " + str(car_id)
+        plot_infos =  [{"x_list": time_j, "y_list": j, "color": "tab:olive", "label": "Jerk"},
+                       {"x_list": spl_time_j, "y_list": spl_j, "color": "tab:green", "label": "Spline Fit Jerk"}]
+        output_file_name = "car" + str(car_id) + "_4_jerk.png"
+        plot_figure(plot_title, plot_infos, "time (seconds)", "jerk, da/dt", 1, output_file_name)
+        
     
