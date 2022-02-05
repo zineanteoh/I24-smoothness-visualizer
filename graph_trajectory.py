@@ -4,9 +4,14 @@ Created on Fri Jan 28 11:15:36 2022
 
 @author: teohz
 
-@brief: this program plots and saves trajectory graph up to 
-        3rd derivative (jerk). 
-        derivatives are computed using discrete-time derivatives
+@brief: this program graphs the computed trajectory against 
+        a smoothing spline fit
+        
+        the trajectory's derivatives are computed up to jerk
+        using discrete-time derivatives. 
+        
+        the smoothing fit used is interpolated univariate
+        spline fit. 
 """
 
 import numpy as np
@@ -72,8 +77,8 @@ if __name__ == "__main__":
         # position
         x = df['x']
         time_x = df['Timestamp']
-        # spline fit on position
-        spl = InterpolatedUnivariateSpline(time_x, x)
+        # spline fit on position (smooth out)
+        spl = InterpolatedUnivariateSpline(time_x, x, k = 4)
         spl_time_x = np.linspace(min(time_x), max(time_x), 100)
         spl_x = spl(spl_time_x)
         # plot position
@@ -115,4 +120,3 @@ if __name__ == "__main__":
         output_file_name = "car" + str(car_id) + "_4_jerk.png"
         plot_figure(plot_title, plot_infos, "time (seconds)", "jerk, da/dt", 1, output_file_name)
         
-    
